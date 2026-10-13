@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import Navbar from "../components/Navbar";
+import RoleGuard from "../components/RoleGuard";
 import { jobs } from "../jobs/jobs";
 
 type Application = {
@@ -11,7 +12,7 @@ type Application = {
   status: string;
 };
 
-export default function DashboardPage() {
+function StudentDashboardContent() {
   const [applications, setApplications] = useState<Application[]>([]);
 
   useEffect(() => {
@@ -120,5 +121,13 @@ export default function DashboardPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <RoleGuard requiredRole="student">
+      <StudentDashboardContent />
+    </RoleGuard>
   );
 }
