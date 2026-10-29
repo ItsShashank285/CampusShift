@@ -208,3 +208,40 @@ for each row execute procedure public.set_marketplace_updated_at();
 
 -- Note: approval/rejection of verification requests is intentionally reserved for a trusted
 -- manual/admin workflow; no user-facing self-approval policy is granted here.
+
+
+-- Allow a business to read basic profile details only for students who applied
+-- to one of that business's jobs. This is needed for the applicant dashboard.
+drop policy if exists "Businesses read profiles of their applicants" on public.profiles;
+create policy "Businesses read profiles of their applicants" on public.profiles
+for select to authenticated
+using (
+  exists (
+    select 1
+    from public.job_applications a
+    join public.jobs j on j.id = a.job_id
+    where a.student_id = profiles.id
+      and j.owner_id = (select auth.uid())
+      and exists (
+        select 1 from public.profiles viewer
+        where viewer.id = (select auth.uid()) and viewer.role = 'business'
+      )
+  )
+);
+
+drop policy if exists "Businesses read student details for their applicants" on public.student_profiles;
+create policy "Businesses read student details for their applicants" on public.student_profiles
+for select to authenticated
+using (
+  exists (
+    select 1
+    from public.job_applications a
+    join public.jobs j on j.id = a.job_id
+    where a.student_id = student_profiles.user_id
+      and j.owner_id = (select auth.uid())
+      and exists (
+        select 1 from public.profiles viewer
+        where viewer.id = (select auth.uid()) and viewer.role = 'business'
+      )
+  )
+);
