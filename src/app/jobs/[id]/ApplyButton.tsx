@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAccountRole } from "../../../lib/useAccountRole";
+import { getSupabaseBrowserClient } from "../../../lib/supabase/client";
 
 type ApplyButtonProps = {
   jobId: string;
@@ -14,6 +15,7 @@ type ApplyButtonProps = {
   match: number;
   college: string;
   course: string;
+  source?: "demo" | "database";
 };
 
 export default function ApplyButton({
@@ -26,43 +28,75 @@ export default function ApplyButton({
   match,
   college,
   course,
+  source = "demo",
 }: ApplyButtonProps) {
   const role = useAccountRole();
+  const supabase = getSupabaseBrowserClient();
   const [applied, setApplied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (role === "student") {
-      setApplied(Boolean(localStorage.getItem(`application-${jobId}`)));
-    } else {
-      setApplied(false);
+    let cancelled = false;
+    async function checkApplication() {
+      if (role !== "student" || source !== "database" || !supabase) {
+        setApplied(role === "student" && source === "demo" && Boolean(localStorage.getItem(`application-${jobId}`)));
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error: queryError } = await supabase
+        .from("job_applications")
+        .select("id")
+        .eq("job_id", jobId)
+        .eq("student_id", user.id)
+        .maybeSingle();
+      if (!cancelled) {
+        if (queryError) setError("Couldn't check your application status. Apply after the database migration is installed.");
+        setApplied(Boolean(data));
+      }
     }
-  }, [jobId, role]);
+    void checkApplication();
+    return () => { cancelled = true; };
+  }, [jobId, role, source, supabase]);
 
-  const handleApply = () => {
-    // A UI guard, backed by the page-level role guard. Application storage is still
-    // browser-local in this prototype; database-backed applications with RLS are a later milestone.
+  const handleApply = async () => {
     if (role !== "student") return;
+    setError("");
+    if (source !== "database") {
+      setError("This is a sample listing. Applications are only available for live jobs posted by a business.");
+      return;
+    }
+    if (!supabase) {
+      setError("Applications need CampusShift's Supabase database to be configured.");
+      return;
+    }
 
-    const application = {
-      jobId: String(jobId),
-      job: jobTitle,
-      jobTitle,
-      company,
-      pay,
-      date: day,
-      day,
-      time,
-      status: "Pending",
-      studentName: "Student Applicant",
-      college,
-      course,
-      experience: "Not provided",
-      match,
-      appliedAt: new Date().toISOString(),
-    };
+    setLoading(true);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      setError("Please sign in again as a student before applying.");
+      setLoading(false);
+      return;
+    }
 
-    localStorage.setItem(`application-${jobId}`, JSON.stringify(application));
+    const { error: insertError } = await supabase.from("job_applications").insert({
+      job_id: jobId,
+      student_id: user.id,
+      status: "pending",
+      cover_note: "",
+    });
+    if (insertError) {
+      setError(insertError.code === "23505"
+        ? "You've already applied for this job."
+        : `Application couldn't be saved: ${insertError.message}`);
+      if (insertError.code === "23505") setApplied(true);
+      setLoading(false);
+      return;
+    }
+
     setApplied(true);
+    setLoading(false);
   };
 
   if (role === "loading") {
@@ -89,21 +123,22 @@ export default function ApplyButton({
     );
   }
 
-  if (applied) {
-    return (
-      <>
-        <div className="apply-success" role="status">✓ Application saved — check your dashboard for its status.</div>
-        <div className="hero-actions" style={{ marginTop: 12 }}>
-          <Link href="/dashboard" className="btn btn-primary">Student dashboard <span aria-hidden="true">→</span></Link>
-          <Link href="/jobs" className="btn btn-secondary">Explore more jobs</Link>
-        </div>
-      </>
-    );
-  }
-
   return (
-    <button onClick={handleApply} className="btn btn-primary" style={{ width: "100%", minHeight: 54, marginTop: 28, fontSize: "1rem" }}>
-      Apply for this job <span aria-hidden="true">→</span>
-    </button>
+    <>
+      {applied ? (
+        <>
+          <div className="apply-success" role="status">✓ Application saved to your account — check your dashboard for its status.</div>
+          <div className="hero-actions" style={{ marginTop: 12 }}>
+            <Link href="/dashboard" className="btn btn-primary">Student dashboard <span aria-hidden="true">→</span></Link>
+            <Link href="/jobs" className="btn btn-secondary">Explore more jobs</Link>
+          </div>
+        </>
+      ) : (
+        <button onClick={handleApply} disabled={loading} className="btn btn-primary" style={{ width: "100%", minHeight: 54, marginTop: 28, fontSize: "1rem" }}>
+          {loading ? "Submitting application…" : <>Apply for this job <span aria-hidden="true">→</span></>}
+        </button>
+      )}
+      {error && <div className="notice-card notice-error" role="alert" style={{ marginTop: 12 }}>{error}</div>}
+    </>
   );
 }

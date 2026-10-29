@@ -134,7 +134,6 @@ export default function Home() {
               </div>
             </div>
             <div className="hero-sticker hero-sticker-top"><span className="sticker-mark">✦</span><span><strong>Students first</strong><small>Your classes come first.</small></span></div>
-            <div className="hero-sticker hero-sticker-bottom"><span className="sticker-mark sticker-mark-amber">₹</span><span><strong>Earn while you learn</strong><small>Clear pay. Flexible shifts.</small></span></div>
             <div className="hero-note" aria-hidden="true">YOUR NEXT<br />GOOD SHIFT <span>↗</span></div>
           </div>
         </div>

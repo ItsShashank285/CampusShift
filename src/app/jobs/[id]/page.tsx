@@ -114,7 +114,7 @@ function JobDetailsPageContent() {
 
               {typeof job.match === "number" && <div className="match-panel"><div><strong>{job.match}% match for you</strong><p>A sample match score based on shift details and student-friendly requirements.</p></div><span aria-hidden="true" style={{ fontSize: "1.5rem" }}>✦</span></div>}
 
-              <ApplyButton jobId={job.id} jobTitle={job.title} company={job.company} pay={job.pay} day={job.day} time={job.time} match={job.match ?? 0} college="College not added" course="Not specified" />
+              <ApplyButton jobId={job.id} jobTitle={job.title} company={job.company} pay={job.pay} day={job.day} time={job.time} match={job.match ?? 0} college="College not added" course="Not specified" source={job.source} />
             </article>
           </div>
         </div>
