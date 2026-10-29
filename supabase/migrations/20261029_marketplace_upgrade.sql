@@ -222,10 +222,6 @@ using (
     join public.jobs j on j.id = a.job_id
     where a.student_id = profiles.id
       and j.owner_id = (select auth.uid())
-      and exists (
-        select 1 from public.profiles viewer
-        where viewer.id = (select auth.uid()) and viewer.role = 'business'
-      )
   )
 );
 
