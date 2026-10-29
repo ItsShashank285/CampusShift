@@ -5,7 +5,6 @@ import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import Navbar from "../components/Navbar";
 import RoleGuard from "../components/RoleGuard";
-import { jobs as demoJobs } from "../jobs/jobs";
 import { databaseRowToJob, type DatabaseJobRow, type JobListing } from "../../lib/jobs";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../../lib/supabase/client";
 
