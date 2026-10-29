@@ -324,7 +324,7 @@ function BusinessDashboardContent() {
                 ) : (
                   <div className="application-list">
                     {applications.map((application, index) => {
-                      const statusClass = application.status === "Accepted" ? "status-accepted" : application.status === "Rejected" ? "status-rejected" : "";
+                      const statusClass = application.status === "accepted" ? "status-accepted" : application.status === "rejected" || application.status === "withdrawn" ? "status-rejected" : "";
                       const initial = application.studentName?.trim().charAt(0) || "S";
                       return (
                         <article key={`${application.jobId}-${index}`} className="application-card" style={{ "--delay": `${index * 75}ms` } as CSSProperties}>
